@@ -1,45 +1,42 @@
-# 1) Predict the price of a car for a given mileage
-# 2) Train the model using the data in data.csv
-# 3) Bonus: plotting the data into a graph to see their repartition
-# 4) Bonus: plotting the line resulting into the same graph
-# 5) Bonus: calculate the precision
+'''
+1) Predict the price of a car for a given mileage
+2) Train the model using the data in data.csv
+3) Bonus: plotting the data into a graph to see their repartition
+4) Bonus: plotting the line resulting into the same graph
+5) Bonus: calculate the precision of the model
+'''
 
 
 # Read scv file and return 2 lists of x and y
 def load_data(file):
     x = []
     y = []
-    with open(file, 'r') as file:
-        lines = file.readlines()
-        for i in range(1, len(lines)):
-            x.append(int(lines[i].split(',')[0]))
-            y.append(int(lines[i].split(',')[1]))
-    return(x, y)
+    try:
+        with open(file, 'r') as file:
+            lines = file.readlines()
+            for i in range(1, len(lines)):
+                x.append(int(lines[i].split(',')[0]))
+                y.append(int(lines[i].split(',')[1]))
+        return(x, y)
+    except Exception as e:
+        exit(e)
 
 
 class LinearRegression:
-    def __init__(self, learning_rate=0.01, epochs=1000):
+    def __init__(self, theta0=0, theta1=0, learning_rate=0.001, epochs=10000):
         self.learning_rate = learning_rate
         self.epochs = epochs
-        self.theta0 = 0
-        self.theta1 = 0
-        self.mean = 0
-        self.std = 0
+        self.theta0 = theta0
+        self.theta1 = theta1
+        self.x = []
+        self.y = []
 
     # Normalization using mean and standart deviation
-
-    def calculate_mean(self, x):
-        return sum(x) / len(x)
-
-    def calculate_std(self, x):
-        mean_x = self.calculate_mean(x)
-        return (sum([(xi - mean_x) ** 2 for xi in x]) / len(x)) ** 0.5
-
     def normalize(self, xi):
         m = len(self.x)
-        mean = sum(self.x) / m
-        std = (sum([(xi - mean) ** 2 for xi in self.x]) / m) ** 0.5
-        return (xi - mean) / std
+        mean_x = sum(self.x) / m
+        std_x = (sum([(xi - mean_x) ** 2 for xi in self.x]) / m) ** 0.5
+        return (xi - mean_x) / std_x
     
     # Predict for normalized x
     def predict_norm(self, x):
@@ -47,8 +44,10 @@ class LinearRegression:
     
     # Predict for unnormalized x
     def predict(self, new_x):
+        if len(self.x) == 0:
+            raise ValueError("Model has not been trained yet.")
         new_x = self.normalize(new_x)
-        return round(self.predict_norm(new_x), 2)
+        return self.predict_norm(new_x)
 
     def train(self, x, y):
         self.x = x
@@ -70,21 +69,28 @@ class LinearRegression:
             self.theta1 -= (self.learning_rate * sum_theta1) / m
 
         return self.theta0, self.theta1
-
-
     
-    # Mean absolut persentage error
-    # def precision(self, x, y):
-    #     m = len(x)
-    #     sum_error = sum([abs(self.predict(x[i]) - y[i]) / y[i] for i in range(m)])
-    #     return (sum_error / m) * 100
-    
-    def precision(self, x, y):
-    # Check if y has any zero values to avoid division by zero errors
-        if any(val == 0 for val in y):
-            raise ValueError("Target values contain zeros, which may cause division by zero.")
-
+    # Sum of squared error by regression line
+    def ssr(self, x, y):
         m = len(x)
-        # Compute the MAPE
-        sum_error = sum([abs(self.predict(x[i]) - y[i]) / max(y[i], 1e-10) for i in range(m)])
-        return (sum_error / m) * 100
+        sum_error = sum([(self.predict(x[i]) - y[i]) ** 2 for i in range(m)])
+        return sum_error
+    
+    # Sum of squared error by mean line
+    def ssm(self, x, y):
+        m = len(x)
+        mean_y = sum(y) / m
+        sum_error = sum([(y[i] - mean_y) ** 2 for i in range(m)])
+        return sum_error
+    
+    # Mean squared error
+    def mean_squared_error(self):
+        return self.ssr(self.x, self.y) / len(self.x)
+    
+    def mean_absolute_error(self):
+        return sum([abs(self.predict(self.x[i]) - self.y[i]) for i in range(len(self.x))]) / len(self.x)
+
+    # R2 score of the model - how well the model fits the data
+    def score(self):
+        return 1 - self.ssr(self.x, self.y) / self.ssm(self.x, self.y)
+    
