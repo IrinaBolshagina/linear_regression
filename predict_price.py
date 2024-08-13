@@ -1,5 +1,4 @@
 from linear_regression import LinearRegression, load_data
-from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
     
