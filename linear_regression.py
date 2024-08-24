@@ -7,21 +7,6 @@
 '''
 
 
-# Read scv file and return 2 lists of x and y
-def load_data(file):
-    x = []
-    y = []
-    try:
-        with open(file, 'r') as file:
-            lines = file.readlines()
-            for i in range(1, len(lines)):
-                x.append(int(lines[i].split(',')[0]))
-                y.append(int(lines[i].split(',')[1]))
-        return(x, y)
-    except Exception as e:
-        exit(e)
-
-
 class LinearRegression:
     def __init__(self, theta0=0, theta1=0, learning_rate=0.001, epochs=10000):
         self.learning_rate = learning_rate
@@ -30,22 +15,35 @@ class LinearRegression:
         self.theta1 = theta1
         self.x = []
         self.y = []
+    
+    def mean(self, x):
+        return sum(x) / len(x)
+    
+    def std(self, x):
+        mean_x = self.mean(x)
+        return (sum([(xi - mean_x) ** 2 for xi in x]) / len(x)) ** 0.5
 
     # Normalization using mean and standart deviation
     def normalize(self, xi):
+        if len(self.x) == 0:
+            return xi
         m = len(self.x)
-        mean_x = sum(self.x) / m
-        std_x = (sum([(xi - mean_x) ** 2 for xi in self.x]) / m) ** 0.5
+        mean_x = self.mean(self.x)
+        std_x = self.std(self.x)
         return (xi - mean_x) / std_x
+    
+    def denormalize_theta(self, theta0, theta1):
+        theta0 = theta0 - (theta1 * self.mean(self.x)) / self.std(self.x)
+        theta1 = theta1 / self.std(self.x)
+        return theta0, theta1
+
     
     # Predict for normalized x
     def predict_norm(self, x):
         return self.theta0 + self.theta1 * x
     
-    # Predict for unnormalized x
+    # # Predict for unnormalized x
     def predict(self, new_x):
-        if len(self.x) == 0:
-            raise ValueError("Model has not been trained yet.")
         new_x = self.normalize(new_x)
         return self.predict_norm(new_x)
 
@@ -56,19 +54,18 @@ class LinearRegression:
         m = len(x)
 
         for _ in range(self.epochs):
-            sum_theta0 = 0
-            sum_theta1 = 0
 
             for i in range(m):
                 prediction = self.predict_norm(x_norm[i])
                 error = prediction - y[i]
-                sum_theta0 += error
-                sum_theta1 += error * x_norm[i]
 
-            self.theta0 -= (self.learning_rate * sum_theta0) / m
-            self.theta1 -= (self.learning_rate * sum_theta1) / m
+                theta_tmp0 = self.learning_rate * sum([error]) / m
+                theta_tmp1 = self.learning_rate * sum([error * x_norm[i]]) / m
 
-        return self.theta0, self.theta1
+                self.theta0 -= theta_tmp0
+                self.theta1 -= theta_tmp1
+
+        return self.denormalize_theta(self.theta0, self.theta1)
     
     # Sum of squared error by regression line
     def ssr(self, x, y):

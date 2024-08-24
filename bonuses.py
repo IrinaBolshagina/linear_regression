@@ -1,4 +1,5 @@
-from linear_regression import LinearRegression, load_data
+from linear_regression import LinearRegression
+from train import load_data
 from matplotlib import pyplot as plt
 
 def visualise_dataset(x, y):
